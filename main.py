@@ -2,6 +2,7 @@ import copy
 import glob
 import os
 import time
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 import gym
 import numpy as np
@@ -156,7 +157,17 @@ def main():
         rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.tau)
 
         value_loss, action_loss, dist_entropy = agent.update(rollouts)
-        
+
+        if j % args.save_interval == 0 and args.save_dir != "":
+            save_path = os.path.join(args.save_dir, args.algo)
+            try:
+                os.makedirs(save_path)
+            except OSError:
+                pass
+
+            # save the memory used to fit 
+            rollouts.save(os.path.join(save_path, 'mem%d.pkl'%j))
+
         rollouts.after_update()
 
         if j % args.save_interval == 0 and args.save_dir != "":
@@ -174,7 +185,7 @@ def main():
             save_model = [save_model,
                             hasattr(envs, 'ob_rms') and envs.ob_rms or None]
 
-            torch.save(save_model, os.path.join(save_path, args.env_name + ".pt"))
+            torch.save(save_model, os.path.join(save_path, args.env_name + "_%d.pt"%j))
 
         if j % args.log_interval == 0:
             end = time.time()
@@ -187,13 +198,13 @@ def main():
                        final_rewards.min(),
                        final_rewards.max(), dist_entropy,
                        value_loss, action_loss))
-        if args.vis and j % args.vis_interval == 0:
-            try:
-                # Sometimes monitor doesn't properly flush the outputs
-                win = visdom_plot(viz, win, args.log_dir, args.env_name,
-                                  args.algo, args.num_frames)
-            except IOError:
-                pass
+        #if args.vis and j % args.vis_interval == 0:
+        #    try:
+        #        # Sometimes monitor doesn't properly flush the outputs
+        #        win = visdom_plot(viz, win, args.log_dir, args.env_name,
+        #                          args.algo, args.num_frames)
+        #    except IOError:
+        #        pass
 
 if __name__ == "__main__":
     main()

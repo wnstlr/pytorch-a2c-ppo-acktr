@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
+import pickle
 
 
 class RolloutStorage(object):
@@ -119,3 +120,12 @@ class RolloutStorage(object):
 
             yield observations_batch, states_batch, actions_batch, \
                 return_batch, masks_batch, old_action_log_probs_batch, adv_targ
+
+    def save(self, path):
+        d = dict()
+        d['states'] = self.observations.cpu().numpy()
+        d['actions'] = self.actions.cpu().numpy()
+        d['rewards'] = self.rewards.cpu().numpy()
+        with open(path, 'wb') as f:
+            pickle.dump(d, f)
+
